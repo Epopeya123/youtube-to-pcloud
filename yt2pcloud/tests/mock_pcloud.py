@@ -23,6 +23,7 @@ class MockPCloud:
     def __init__(self, account_region="eu", tfa_type=None, wrong_region_error=2321):
         self.account_region = account_region
         self.tfa_type = tfa_type
+        self.send_tfa_token = True
         self.wrong_region_error = wrong_region_error
         self.digests = set()
         self.tokens = set()
@@ -123,7 +124,7 @@ class MockPCloud:
             self.digests.add(digest)
             return {"result": 0, "digest": digest}
 
-        if method == "userinfo" and "username" in p:
+        if method in ("userinfo", "login") and "username" in p:
             if region != self.account_region:
                 if self.wrong_region_error == 2321:
                     other = self.account_region
@@ -138,8 +139,12 @@ class MockPCloud:
             if p["username"].lower() != EMAIL or p.get("passworddigest") != expected:
                 return {"result": 2000, "error": "Log in failed."}
             if self.tfa_type:
-                return {"result": 2297, "error": "Two-factor authentication required.",
-                        "token": "tfa-token", "tfatype": self.tfa_type, "hasdevices": False}
+                # Like the real server: only "login", the method of pCloud's own client,
+                # sends the token that tfa_login needs; userinfo leaves it out.
+                answer = {"result": 2297, "error": "Two factor authentication required."}
+                if method == "login" and self.send_tfa_token:
+                    answer.update({"token": "tfa-token", "tfatype": self.tfa_type, "hasdevices": False})
+                return answer
             return self._issue_token()
 
         if method == "tfa_sendcodeviasms":
