@@ -36,6 +36,7 @@ HOSTS = [h for h in os.environ.get("YT2PCLOUD_HOSTS", "eapi.pcloud.com,api.pclou
 SCHEME = os.environ.get("YT2PCLOUD_SCHEME", "https")
 TOKEN_LIFETIME = 365 * 24 * 3600  # one year, the same as pCloud's own Python SDK asks for
 DEVICE = "yt2pcloud"
+OS_ID = {"win32": 5, "darwin": 6}.get(sys.platform, 7)  # pCloud's own client: 5 Windows, 6 macOS, 7 Linux
 
 LOGIN_EXPIRED = {1000, 2000, 2094, 2095}  # "log in required/failed", "invalid token"
 LOGIN_FAILED = 2000
@@ -130,8 +131,25 @@ def _ask(prompt):
         raise PCloudError(LOGIN_FAILED, "No answer could be read (is this running without a keyboard?).")
 
 
-def _two_factor(host, response):
-    token = response["token"]
+def _two_factor(host, email, password, deviceid, response):
+    # userinfo answers 2297 without the token that tfa_login needs. pCloud's own
+    # client logs in with the undocumented "login" method instead, which sends it.
+    if not response.get("token"):
+        digest = _call(host, "getdigest")["digest"]
+        try:
+            return _call(host, "login", {
+                "getauth": 1, "username": email, "digest": digest,
+                "passworddigest": _password_digest(email, password, digest),
+                "authexpire": TOKEN_LIFETIME, "device": DEVICE, "deviceid": deviceid, "os": OS_ID,
+            })
+        except PCloudError as e:
+            if e.result != TWO_FACTOR_NEEDED:
+                raise
+            response = e.response
+    token = response.get("token")
+    if not token:
+        raise PCloudError(TWO_FACTOR_NEEDED, "pCloud asked for a two-factor code but sent no login token "
+                                             f"(its answer had: {', '.join(sorted(response))}).")
     if response.get("tfatype") == 1:
         try:
             _call(host, "tfa_sendcodeviasms", {"token": token})
@@ -144,7 +162,7 @@ def _two_factor(host, response):
     code = _ask(prompt).strip().replace(" ", "")
     return _call(host, "tfa_login", {
         "token": token, "code": code, "trustdevice": 1, "getauth": 1,
-        "authexpire": TOKEN_LIFETIME, "device": DEVICE,
+        "authexpire": TOKEN_LIFETIME, "device": DEVICE, "deviceid": deviceid, "os": OS_ID,
     })
 
 
@@ -160,6 +178,7 @@ def login(email=None, password=None):
         else:  # piped in by a script or a test: there is no screen to hide it from
             password = _ask("pCloud password: ")
 
+    deviceid = load_config().get("deviceid") or uuid.uuid4().hex  # the same id lets "trust this device" stick
     hosts, tried, last_error, rejected = list(HOSTS), set(), None, False
     while hosts:
         host = hosts.pop(0)
@@ -181,7 +200,7 @@ def login(email=None, password=None):
                 last_error = e
                 continue
             if e.result == TWO_FACTOR_NEEDED:
-                result = _two_factor(host, e.response)
+                result = _two_factor(host, email, password, deviceid, e.response)
             elif e.result == LOGIN_FAILED:
                 # wrong password, or an account in the other region: try the other host
                 last_error, rejected = e, True
@@ -189,7 +208,7 @@ def login(email=None, password=None):
             else:
                 raise
         config = load_config()
-        config.update({"host": host, "auth": result["auth"], "email": email})
+        config.update({"host": host, "auth": result["auth"], "email": email, "deviceid": deviceid})
         save_config(config)
         return host, result["auth"]
     if rejected:

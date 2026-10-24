@@ -12,6 +12,7 @@ Two tools in one repo:
 - `pcloud.py` is **standard library only** (runs in Termux, Windows, macOS with nothing installed). Keep it that way.
 - The user's cloud is **pCloud**; uploads go to `/My Music` by default. Playlists are pCloud "collections" with type 1.
 - Login is pCloud's digest login (`getdigest` + `userinfo`); the password is never sent or stored. Token in `~/.config/yt2pcloud/pcloud.json` (0600). Accounts are EU (`eapi.pcloud.com`) or US (`api.pcloud.com`); error 2321 names the right host, 2297 means two-factor (`tfa_login`). Never commit a token.
+- Two-factor (learned on the real account, 24 Oct 2026): `userinfo` answers 2297 **without** the `token` that `tfa_login` needs. pCloud's own client logs in with the undocumented `login` method (plus `deviceid`, `os`), whose 2297 answer has it; `pcloud.py` retries that way. The fake pCloud in the tests mirrors this, so keep it matching the real server.
 - `python3 pcloud.py send FILE -p PLAYLIST` is the non-interactive path for Claude on a computer.
 - Tests: `python3 -m unittest discover -s yt2pcloud/tests -v` (fake pCloud, local web server for yt-dlp, fake pkg/pip for the installer).
 

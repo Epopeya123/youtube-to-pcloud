@@ -112,12 +112,20 @@ class AuthenticatorTests(Base):
         self.assertIn("authenticator app", r.stdout)
         tfa = [p for _, m, p in self.mock.calls if m == "tfa_login"][0]
         self.assertEqual(tfa["trustdevice"], "1")
+        self.assertEqual(tfa["deviceid"], self.saved()["deviceid"])  # so "trust this device" sticks
         self.assertNotIn("tfa_sendcodeviasms", self.mock.methods())
 
     def test_two_factor_wrong_code(self):
         r = self.run_cli("login", stdin=LOGIN + "000000\n")
         self.assertEqual(r.returncode, 1)
         self.assertIn("Invalid code", r.stderr)
+
+    def test_two_factor_without_a_token_explains_instead_of_crashing(self):
+        self.mock.send_tfa_token = False
+        r = self.run_cli("login", stdin=LOGIN)
+        self.assertEqual(r.returncode, 1)
+        self.assertIn("sent no login token", r.stderr)
+        self.assertNotIn("Traceback", r.stderr)
 
 
 class SmsTests(Base):
