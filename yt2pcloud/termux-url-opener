@@ -1,0 +1,41 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# Share a YouTube link to Termux: download the audio with its cover art,
+# then optionally upload it to pCloud and add it to a playlist.
+# Installed to ~/bin/termux-url-opener by yt2pcloud/install.sh.
+
+DOWNLOAD_DIR="$HOME/storage/shared/Music"
+YT2PCLOUD_HOME="$HOME/youtube-to-pcloud/yt2pcloud"
+SETTINGS="$HOME/.config/yt2pcloud/settings.sh"
+# shellcheck source=/dev/null
+[ -f "$SETTINGS" ] && . "$SETTINGS"
+
+mkdir -p "$DOWNLOAD_DIR"
+saved="$(mktemp)"
+
+# bestaudio[ext=m4a] is YouTube's own AAC audio: saved as-is, no re-encoding.
+yt-dlp --js-runtimes node --no-playlist \
+    -f "bestaudio[ext=m4a]/bestaudio/best" -x --audio-format m4a \
+    --embed-thumbnail --add-metadata \
+    -o "$DOWNLOAD_DIR/%(title)s.%(ext)s" \
+    --print-to-file after_move:filepath "$saved" \
+    "$1"
+status=$?
+
+files=()
+while IFS= read -r line; do
+    [ -f "$line" ] && files+=("$line")
+done < "$saved"
+rm -f "$saved"
+
+if [ ${#files[@]} -gt 0 ]; then
+    echo
+    for f in "${files[@]}"; do echo "Saved: $(basename "$f")"; done
+    python3 "$YT2PCLOUD_HOME/pcloud.py" ask "${files[@]}"
+else
+    echo
+    echo "Download failed (exit code $status). See the messages above."
+fi
+
+echo
+printf 'Done. Press Enter to close.'
+read -r _ || true

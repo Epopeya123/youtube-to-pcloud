@@ -7,6 +7,14 @@ Two tools in one repo:
 1. **Termux CLI tool** (`download_audio.py`, `termux/`) — runs on Android phone via Termux, downloads audio via yt-dlp + ffmpeg, scheduled every 6 hours
 2. **Android app** (`app/`) — KivyMD 1.2.0 app built with Buildozer via GitHub Actions. The app is a UI control panel that launches Termux for all downloads (Termux has ffmpeg + yt-dlp). Supports multi-channel management, a Downloads tab that plays/deletes episodes, and share-to-download.
 
+## yt2pcloud — the current phone setup (Oct 2026)
+`yt2pcloud/` is what the user's phone actually runs now: share a link to Termux → yt-dlp downloads m4a with cover → asks "Upload to pCloud?" → picks pCloud playlists. See `yt2pcloud/README.md`.
+- `pcloud.py` is **standard library only** (runs in Termux, Windows, macOS with nothing installed). Keep it that way.
+- The user's cloud is **pCloud**; uploads go to `/My Music` by default. Playlists are pCloud "collections" with type 1.
+- Login is pCloud's digest login (`getdigest` + `userinfo`); the password is never sent or stored. Token in `~/.config/yt2pcloud/pcloud.json` (0600). Accounts are EU (`eapi.pcloud.com`) or US (`api.pcloud.com`); error 2321 names the right host, 2297 means two-factor (`tfa_login`). Never commit a token.
+- `python3 pcloud.py send FILE -p PLAYLIST` is the non-interactive path for Claude on a computer.
+- Tests: `python3 -m unittest discover -s yt2pcloud/tests -v` (fake pCloud, local web server for yt-dlp, fake pkg/pip for the installer).
+
 ## How the two halves talk
 - Termux writes audio **and** a `.episodes.json` manifest into `/sdcard/Podcasts/<channel>/`. Shared storage on purpose: the files stay browsable, uploadable to the user's own drive, and deletable by the app.
 - The app sends Termux a payload string: `<url>|||<folder>|||<format>` or `REFRESH:<channel_url>|||<folder>|||<format>`, parsed by `termux/termux-url-opener`.
@@ -64,7 +72,8 @@ xvfb-run -a -s "-screen 0 1024x768x24" env KIVY_NO_ARGS=1 KIVY_LOG_MODE=PYTHON \
 - Build log saved to `build-logs/latest-build.log` (readable via GitHub API)
 
 ## User's phone
-- Motorola Edge 60, Android 14 (API 34)
+- Current (Oct 2026): a Samsung. Runs `yt2pcloud/` only; the older podcast setup and the app are not installed on it. Samsung calls "Display over other apps" **Appear on top** (Termux needs it to open from the share menu).
+- Previous: Motorola Edge 60, Android 14 (API 34)
 - Termux installed with yt-dlp, ffmpeg, nodejs-lts, yt-dlp-ejs
 - F-Droid as app store for Termux
 
