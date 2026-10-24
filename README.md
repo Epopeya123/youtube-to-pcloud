@@ -2,6 +2,10 @@
 
 Downloads audio from YouTube and saves it to your phone so you can listen to it like a podcast.
 
+> **Current phone setup: [`yt2pcloud/`](yt2pcloud/).** Share a YouTube link to Termux, the audio downloads,
+> and Termux asks whether to upload it to pCloud and which playlist to add it to. The app and the scheduled
+> channel downloads described below are the older setup.
+
 Two halves that work together:
 
 - **The Android app** — share a YouTube link to it and the download starts. The Downloads tab lists your episodes with their thumbnails, plays them with the artwork on screen, and can delete or export them.
