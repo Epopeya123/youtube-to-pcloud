@@ -18,7 +18,8 @@ bash ~/youtube-to-pcloud/yt2pcloud/install.sh
 
 The installer:
 
-- installs `python`, `ffmpeg`, `nodejs`, `yt-dlp[default]` and `mutagen`;
+- installs `python`, `ffmpeg`, `nodejs`, `yt-dlp[default]` (or plain `yt-dlp` and `yt-dlp-ejs` if that fails to
+  build) and `mutagen`;
 - puts the share script in `~/bin/termux-url-opener`, keeping the old one as `termux-url-opener.bak`;
 - keeps downloading into whatever folder your previous script used, otherwise `Internal storage > Music`;
 - logs you in to pCloud once. It uses pCloud's digest login, so your password never leaves the phone and is

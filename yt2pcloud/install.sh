@@ -10,7 +10,9 @@ OPENER="$HOME/bin/termux-url-opener"
 
 echo "== Installing tools (skips what is already there)"
 pkg install -y python ffmpeg nodejs
-pip install -U "yt-dlp[default]" mutagen
+# yt-dlp[default] also pulls in C extensions that Termux has to compile, which fails
+# without a compiler; then install the plain packages the old phone setup used.
+pip install -U "yt-dlp[default]" mutagen || pip install -U yt-dlp yt-dlp-ejs mutagen
 
 [ -d "$HOME/storage/shared" ] || termux-setup-storage
 

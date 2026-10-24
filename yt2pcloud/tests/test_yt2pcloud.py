@@ -344,6 +344,14 @@ class InstallerTests(Base):
         self.assertEqual(self.settings().count("YT2PCLOUD_HOME="), 1)
         self.assertFalse(os.path.exists(self.opener + ".bak"))
 
+    def test_falls_back_to_plain_yt_dlp_when_the_default_extra_fails(self):
+        with open(os.path.join(self.tmp, "fakebin", "pip"), "a") as f:
+            f.write('case "$*" in *"[default]"*) exit 1 ;; esac\n')
+        r = self.install(stdin=LOGIN)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        with open(os.path.join(self.tmp, "fake-calls.log")) as f:
+            self.assertIn("pip install -U yt-dlp yt-dlp-ejs mutagen", f.read())
+
 
 if __name__ == "__main__":
     unittest.main()
