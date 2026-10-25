@@ -12,7 +12,8 @@ Two tools in one repo:
 - `pcloud.py` is **standard library only** (runs in Termux, Windows, macOS with nothing installed). Keep it that way.
 - The user's cloud is **pCloud**; uploads go to `/My Music` by default. Playlists are pCloud "collections" with type 1.
 - Login is pCloud's digest login (`getdigest` + `userinfo`); the password is never sent or stored. Token in `~/.config/yt2pcloud/pcloud.json` (0600). Accounts are EU (`eapi.pcloud.com`) or US (`api.pcloud.com`); error 2321 names the right host, 2297 means two-factor (`tfa_login`). Never commit a token.
-- Two-factor (learned on the real account, 24 Oct 2026): `userinfo` answers 2297 **without** the `token` that `tfa_login` needs. pCloud's own client logs in with the undocumented `login` method (plus `deviceid`, `os`), whose 2297 answer has it; `pcloud.py` retries that way. The fake pCloud in the tests mirrors this, so keep it matching the real server.
+- Two-factor (learned on the real account, 24 Oct 2026): `userinfo` answers 2297 **without** the `token` that `tfa_login` needs. pCloud's own client logs in with the undocumented `login` method (plus `deviceid`, `os`), whose 2297 answer has it; `pcloud.py` retries that way. The fake pCloud in the tests mirrors this, so keep it matching the real server. Error 1022 "Please provide 'code'" would be pCloud's new-device email check, not two-factor; another pCloud client was told the API can't complete it (not seen here).
+- **New phone or computer:** walk the user through `yt2pcloud/README.md` → "New phone" or "New computer", one numbered step at a time, saying what he should see after each. He is not a developer and runs the Termux commands himself. Proven on his Samsung on 24 Oct 2026: Termux from F-Droid, the three commands, file access, pCloud login with two-factor, downloads to Internal storage > Podcasts. The computer route is documented but not yet tried end to end.
 - `python3 pcloud.py send FILE -p PLAYLIST` is the non-interactive path for Claude on a computer.
 - Tests: `python3 -m unittest discover -s yt2pcloud/tests -v` (fake pCloud, local web server for yt-dlp, fake pkg/pip for the installer).
 
@@ -75,7 +76,7 @@ xvfb-run -a -s "-screen 0 1024x768x24" env KIVY_NO_ARGS=1 KIVY_LOG_MODE=PYTHON \
 ## User's phone
 - Current (Oct 2026): a Samsung. Runs `yt2pcloud/` only; the older podcast setup and the app are not installed on it. Samsung calls "Display over other apps" **Appear on top** (Termux needs it to open from the share menu).
 - Previous: Motorola Edge 60, Android 14 (API 34)
-- Termux installed with yt-dlp, ffmpeg, nodejs-lts, yt-dlp-ejs
+- Termux (24 Oct 2026): python 3.14, `nodejs` (not `nodejs-lts`), ffmpeg, `yt-dlp[default]` with all its extras (pip installed them without trouble); yt2pcloud in `~/youtube-to-pcloud`, downloads go to Internal storage > Podcasts
 - F-Droid as app store for Termux
 
 ## Repository
@@ -86,6 +87,9 @@ xvfb-run -a -s "-screen 0 1024x768x24" env KIVY_NO_ARGS=1 KIVY_LOG_MODE=PYTHON \
 - Tests: tests/ (headless, no device needed)
 
 ## Updating the phone
-`git pull` alone reaches `download_audio.py` and `generate_feed.py`. It does **not**
+yt2pcloud (current): `git -C ~/youtube-to-pcloud pull && bash ~/youtube-to-pcloud/yt2pcloud/install.sh`. Re-running the
+installer is also what updates yt-dlp when YouTube breaks downloads.
+
+Old podcast setup: `git pull` alone reaches `download_audio.py` and `generate_feed.py`. It does **not**
 reach `~/bin/termux-url-opener` or `~/run_podcast_download.sh`, which `setup.sh`
 copies outside the checkout — run `bash ~/youtube_podcasts/termux/update.sh` for those.
