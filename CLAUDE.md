@@ -1,3 +1,5 @@
+@AGENTS.md
+
 # CLAUDE.md — Project context for Claude Code
 
 ## Project overview
